@@ -5,9 +5,12 @@ const genAI = new GoogleGenerativeAI(config.googleApiKey);
 const googleAIClient = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 
 export async function getQuestionFromGemini() {
-  const prompt = `Crie um quiz sobre o tema 'Tibia', um jogo MMORPG 2D online, utilizando exclusivamente informações baseadas nos nomes e descrições oficiais do TibiaWiki. As perguntas devem ser sobre o jogo Tibia, abrangendo itens, criaturas, habilidades e mecânicas do jogo, com nomes e descrições exatos como aparecem no TibiaWiki.
-  As perguntas devem variar de forma criativa sempre que o tema for solicitado novamente, evitando repetições de perguntas anteriores. As perguntas devem ser diretas e concisas, levando a respostas com até uma frase. Inclua opções de resposta que sejam plausíveis, mas também variadas, para evitar padrões previsíveis. Evite informações muito comuns ou amplamente conhecidas, dando preferência a detalhes do jogo que aparecem no TibiaWiki.
-  O quiz deve conter 1 pergunta, com 4 opções de resposta, sendo apenas uma a correta, vamos sortear qual posição vai estar a pergunta correta. Formate a saída como um JSON válido, sem markdown, conforme o exemplo abaixo: 
+  const prompt = `
+  Crie um quiz sobre o jogo 'Tibia', utilizando exclusivamente informações baseadas no TibiaWiki. Todas as perguntas e respostas devem ser validadas com base nas informações reais disponíveis no TibiaWiki. 
+  As perguntas devem ser focadas em criaturas, itens, locais ou mecânicas que realmente existem no universo de Tibia, e devem utilizar nomes e descrições exatamente como aparecem no TibiaWiki. Evite criar perguntas sobre criaturas inexistentes, como 'Infernal Scarab', ou itens que não estão associados corretamente às criaturas. 
+  Não inclua informações fictícias ou inventadas. Certifique-se de que as criaturas mencionadas nas respostas estão de acordo com o jogo oficial e que as opções de resposta incorretas ainda sejam plausíveis e relacionadas ao tema.
+  Exemplo de saída formatada como JSON válido:
+
   {
     "quiz": {
       "questions": [
@@ -22,7 +25,8 @@ export async function getQuestionFromGemini() {
         }
       ]
     }
-  }`;
+  }
+  Lembre-se de garantir que todos os itens, criaturas e locais mencionados nas perguntas e respostas sejam corretamente validados com o TibiaWiki e existam no universo oficial do jogo Tibia.`;
 
   try {
     const result = await googleAIClient.generateContent(prompt);

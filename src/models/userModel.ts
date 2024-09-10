@@ -18,7 +18,6 @@ const userSchema: Schema = new Schema({
   wrongAnswers: { type: Number, default: 0 },
 });
 
-// Índice único para discordId e guildId combinados, permitindo múltiplos registros por usuário em servidores diferentes
 userSchema.index({ discordId: 1, guildId: 1 }, { unique: true });
 
 export const User = mongoose.model<IUser>("User", userSchema);

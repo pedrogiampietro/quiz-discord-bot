@@ -6,6 +6,10 @@ export async function findOrCreateUser(
   guildId: string,
   username: string
 ): Promise<IUser> {
+  if (!discordId || !guildId || !username) {
+    throw new Error("discordId, guildId e username são obrigatórios");
+  }
+
   let user = await User.findOne({ discordId, guildId });
   if (!user) {
     user = new User({

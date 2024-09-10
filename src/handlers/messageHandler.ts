@@ -25,7 +25,7 @@ export function setupDiscordClient() {
   client.on("messageCreate", async (message: any) => {
     const guildId = message.guild.id; // Obter o ID do servidor (guildId)
 
-    if (message.content === "!tibiaquiz") {
+    if (message.content === "!quiz") {
       const question = await getQuestionFromGemini();
 
       if (question && question.quiz && question.quiz.questions.length > 0) {
@@ -60,17 +60,38 @@ export function setupDiscordClient() {
 
         // Coletar as reações e contar votos
         collector.on("collect", async (reaction: any, user: any) => {
-          const index = reactions.indexOf(reaction.emoji.name);
-          if (index !== -1) {
-            voteCounts[index] += 1;
-            voters[index].push(user.username);
+          try {
+            // Adicionar um fetch para garantir que o usuário está completamente populado
+            const fetchedUser = await user.fetch();
 
-            // Criar ou encontrar o usuário, considerando guildId
-            const discordUser = await findOrCreateUser(
-              user.id,
+            // Verificar se o usuário já votou em outra opção
+            for (let i = 0; i < voters.length; i++) {
+              if (voters[i].some((voter: any) => voter.id === fetchedUser.id)) {
+                return; // O usuário já votou, ignorar múltiplos votos
+              }
+            }
+
+            // Identificar o índice da reação para contar o voto
+            const reactionIndex = reactions.indexOf(reaction.emoji.name);
+            if (reactionIndex !== -1) {
+              // Incrementar o número de votos para a opção correspondente
+              voteCounts[reactionIndex] += 1;
+
+              // Adicionar o usuário ao array de votantes para a resposta correspondente
+              voters[reactionIndex].push({
+                id: fetchedUser.id,
+                username: fetchedUser.username,
+              });
+            }
+
+            // Criar ou encontrar o usuário no banco de dados, considerando guildId
+            await findOrCreateUser(
+              fetchedUser.id,
               guildId,
-              user.username
+              fetchedUser.username
             );
+          } catch (error) {
+            console.error("Erro ao coletar reação ou criar usuário:", error);
           }
         });
 
@@ -83,16 +104,26 @@ export function setupDiscordClient() {
           for (let i = 0; i < quizQuestion.answers.length; i++) {
             const correctMark = quizQuestion.answers[i].isCorrect ? "✅" : "";
             const voterNames =
-              voters[i].length > 0 ? ` (${voters[i].join(", ")})` : "";
+              voters[i].length > 0
+                ? ` (${voters[i]
+                    .map((voter: any) => voter.username)
+                    .join(", ")})`
+                : "";
+
             resultMessage += `${i + 1}. ${
               quizQuestion.answers[i].content
             } - **${voteCounts[i]} votos** ${correctMark}${voterNames}\n`;
 
             // Atualizar as estatísticas dos usuários, considerando guildId
-            for (const username of voters[i]) {
+            for (const voter of voters[i]) {
+              const discordUser = await findOrCreateUser(
+                voter.id,
+                guildId,
+                voter.username
+              );
               await updateUserScore(
-                username,
-                guildId, // Passa o guildId para atualizar corretamente por servidor
+                discordUser.discordId, // Passar o discordId e guildId corretos
+                guildId,
                 i === correctIndex ? 1 : 0, // Acertos
                 i !== correctIndex ? 1 : 0 // Erros
               );
